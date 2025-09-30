@@ -1,0 +1,49 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv8 object detection model with P3-P5 outputs. For Usage examples see https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 1 # number of classes
+#scales: # model compound scaling constants, i.e. 'model=yolov8n.yaml' will call yolov8.yaml with scale 'n'
+#  # [depth, width, max_channels]
+#  l: [1.00, 1.00, 512]
+
+# YOLOv8.0n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [32, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv, [64, 3, 2]] # 1-P2/4
+  - [-1, 1, C2f, [64, True]]
+  - [-1, 1, Conv, [128, 3, 2]] # 3-P3/8
+  - [-1, 2, C2f, [128, True]]
+  - [-1, 1, Conv, [256, 3, 2]] # 5-P4/16
+  - [-1, 2, C2f, [256, True]]
+  - [-1, 1, Conv, [512, 3, 2]] # 7-P5/32
+  - [-1, 1, C2f, [512, True]]
+  - [-1, 1, SPPF, [512, 5]] # 9
+
+# YOLOv8.0n head
+head:
+  - [4, 1, Conv, [64, 1, 1]]  # 10 Downsample P3/8
+  - [6, 1, Conv, [128, 1, 1]]  # 11 Downsample P4/16
+  - [9, 1, Conv, [256, 1, 1]]  # 12 Downsample P5/32
+
+  - [[10, 11], 1, ASFF2, [64, 0]]  # 13
+  - [[10, 11], 1, ASFF2, [128, 1]]  # 14
+
+  - [13, 1, C2f, [64]]  # 15
+  - [14, 1, C2f, [128]] # 16
+
+  - [[15, 16, 12], 1, ASFF3, [64, 0]]  # 17
+  - [[15, 16, 12], 1, ASFF3, [128, 1]]  # 18
+  - [[15, 16, 12], 1, ASFF3, [256, 2]]  # 19
+
+  - [17, 1, C2f, [128]]
+  - [-1, 1, MS_SCA, [8]]  # 21
+
+  - [18, 1, C2f, [256]]
+  - [-1, 1, MS_SCA, [8]]  # 23
+
+  - [19, 1, C2f, [512]]
+  - [-1, 1, MS_SCA, [8]]  # 25
+
+  - [[21, 23, 25], 1, Detect, [nc]] # Detect(P3, P4, P5)
